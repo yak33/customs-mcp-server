@@ -1,5 +1,5 @@
 {
-  "name": "@zhangchao/customs-mcp-server",
+  "name": "@dearmrzhang/customs-mcp-server",
   "version": "0.1.0",
   "type": "module",
   "description": "MCP server for customs declaration, tariff query and shipment tracking — wraps your backend Agent APIs as standard MCP tools.",

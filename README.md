@@ -1,12 +1,12 @@
-# @zhangchao/customs-mcp-server
+# @dearmrzhang/customs-mcp-server
 
 > MCP server for customs declaration, tariff query and shipment tracking.
 >
 > 将关务系统的报关单查询、税则查询、进出口流转追踪等能力封装为标准 MCP 工具，供 Claude Desktop、Cursor 等 AI 客户端直接调用。
 
-[![npm version](https://img.shields.io/npm/v/@zhangchao/customs-mcp-server)](https://www.npmjs.com/package/@zhangchao/customs-mcp-server)
-[![license](https://img.shields.io/npm/l/@zhangchao/customs-mcp-server)](./LICENSE)
-[![node](https://img.shields.io/node/v/@zhangchao/customs-mcp-server)](https://nodejs.org)
+[![npm version](https://img.shields.io/npm/v/@dearmrzhang/customs-mcp-server)](https://www.npmjs.com/package/@dearmrzhang/customs-mcp-server)
+[![license](https://img.shields.io/npm/l/@dearmrzhang/customs-mcp-server)](./LICENSE)
+[![node](https://img.shields.io/node/v/@dearmrzhang/customs-mcp-server)](https://nodejs.org)
 
 ---
 
@@ -34,7 +34,7 @@ Add the following to your MCP client configuration (e.g. `claude_desktop_config.
   "mcpServers": {
     "customs": {
       "command": "npx",
-      "args": ["-y", "@zhangchao/customs-mcp-server", "--transport", "stdio"],
+      "args": ["-y", "@dearmrzhang/customs-mcp-server", "--transport", "stdio"],
       "env": {
         "CUSTOMS_API_BASE_URL": "http://your-backend-host:port",
         "CUSTOMS_API_PREFIX": "/open-api/agent",
@@ -49,7 +49,7 @@ Add the following to your MCP client configuration (e.g. `claude_desktop_config.
 ### Global install
 
 ```bash
-npm install -g @zhangchao/customs-mcp-server
+npm install -g @dearmrzhang/customs-mcp-server
 customs-mcp-server --transport stdio
 ```
 
