@@ -1,0 +1,42 @@
+{
+  "name": "customs-mcp-server",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MCP server for customs declaration, tariff query and shipment tracking — wraps your backend Agent APIs as standard MCP tools.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "customs",
+    "trade",
+    "declaration",
+    "tariff",
+    "jeecg"
+  ],
+  "author": "ZHANGCHAO",
+  "license": "MIT",
+  "bin": {
+    "customs-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev:stdio": "tsx src/index.ts --transport stdio",
+    "dev:http": "tsx src/index.ts --transport http",
+    "start:stdio": "node dist/index.js --transport stdio",
+    "start:http": "node dist/index.js --transport http"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "dotenv": "^16.4.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.3"
+  }
+}
