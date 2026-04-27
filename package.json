@@ -1,6 +1,6 @@
 {
   "name": "@dearmrzhang/customs-mcp-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "description": "MCP server for customs declaration, tariff query and shipment tracking — wraps your backend Agent APIs as standard MCP tools.",
   "keywords": [
@@ -54,5 +54,10 @@
     "@types/node": "^22.15.3",
     "tsx": "^4.19.3",
     "typescript": "^5.8.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "fast-uri": "2.3.0"
+    }
   }
 }
