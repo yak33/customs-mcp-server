@@ -1,6 +1,6 @@
 {
   "name": "@dearmrzhang/customs-mcp-server",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "description": "MCP server for customs declaration, tariff query and shipment tracking — wraps your backend Agent APIs as standard MCP tools.",
   "keywords": [
@@ -48,6 +48,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.8.0",
     "dotenv": "^16.4.7",
+    "fast-uri": "2.3.0",
     "zod": "^3.24.2"
   },
   "devDependencies": {
