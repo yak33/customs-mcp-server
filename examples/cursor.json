@@ -1,0 +1,27 @@
+{
+  "_comment": [
+    "Cursor MCP config — drop into Cursor → Settings → MCP → Add new server,",
+    "or save to ~/.cursor/mcp.json and restart.",
+    "",
+    "Replace placeholders before use. See docs/identity-binding.md."
+  ],
+  "mcpServers": {
+    "customs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@dearmrzhang/customs-mcp-server",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "CUSTOMS_API_BASE_URL": "http://your-backend-host:port",
+        "CUSTOMS_ACCESS_KEY": "your-access-key",
+        "CUSTOMS_SECRET_KEY": "your-secret-key",
+        "CUSTOMS_DEFAULT_PLATFORM": "cursor",
+        "CUSTOMS_DEFAULT_EXTERNAL_USER_ID": "your-bound-username",
+        "CUSTOMS_DEFAULT_EXTERNAL_CORP_ID": "cursor-prod"
+      }
+    }
+  }
+}

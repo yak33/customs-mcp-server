@@ -1,33 +1,58 @@
-# @dearmrzhang/customs-mcp-server
+<div align="center">
 
-> MCP server for customs declaration, tariff query and shipment tracking.
->
-> 将关务系统的报关单查询、税则查询、进出口流转追踪等能力封装为标准 MCP 工具，供 Claude Desktop、Cursor 等 AI 客户端直接调用。
+# customs-mcp-server
 
-[![npm version](https://img.shields.io/npm/v/@dearmrzhang/customs-mcp-server)](https://www.npmjs.com/package/@dearmrzhang/customs-mcp-server)
-[![license](https://img.shields.io/npm/l/@dearmrzhang/customs-mcp-server)](./LICENSE)
-[![node](https://img.shields.io/node/v/@dearmrzhang/customs-mcp-server)](https://nodejs.org)
+**Customs operations as MCP tools — drop into any AI agent.**
+
+13 production-grade customs / trade capabilities (declarations, ship info,
+tariff, dual-use screening, AI-powered declaration generation, ...)
+exposed as standard [Model Context Protocol](https://modelcontextprotocol.io/)
+tools for Claude Desktop, Claude Code, Cursor, Windsurf, Trae and any
+other MCP-compatible AI client.
+
+[![npm](https://img.shields.io/npm/v/@dearmrzhang/customs-mcp-server)](https://www.npmjs.com/package/@dearmrzhang/customs-mcp-server)
+[![Node](https://img.shields.io/node/v/@dearmrzhang/customs-mcp-server)](https://nodejs.org/)
+[![License](https://img.shields.io/npm/l/@dearmrzhang/customs-mcp-server)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/typescript-strict-blue.svg)](tsconfig.json)
+[![MCP](https://img.shields.io/badge/MCP-1.x-purple.svg)](https://modelcontextprotocol.io/)
+[![GitHub stars](https://img.shields.io/github/stars/yak33/customs-mcp-server?style=social)](https://github.com/yak33/customs-mcp-server)
+
+**English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
+
+</div>
 
 ---
 
-## Features / 功能
+## ✨ Features
 
-- **Declaration Status** — Query declaration status by entry ID or sequence number / 按报关单号或统一编号查询申报状态
-- **Declaration List** — Search declarations by import/export flag, bill number, date range / 按进出口标志、提运单号、时间范围查询报关单列表
-- **Declaration Detail** — Get full declaration details / 获取报关单全量详情
-- **Import/Export Status** — Track import/export flow status / 查询进出口流转状态
-- **Tariff Info** — Look up tariff by HS code or product name / 按 HS 编码或商品名称查询税则
-- **Full Process Tracking** — End-to-end customs clearance tracking / 海关全流程流转轨迹追踪
+- **14 MCP tools** — every customs-skill capability exposed as a typed tool with zod-validated input
+- **Universal client support** — Claude Desktop / Claude Code / Cursor / Windsurf / Trae / Codex / any MCP client
+- **Production auth** — `/session/exchange` → 5-min `agentToken` → action-code whitelist → tenant isolation
+- **Per-call identity override** — server-level env default + optional `_identity` field per tool call (multi-user / multi-tenant friendly)
+- **AI document maker** — multipart upload, no-wait mode, `decId` polling pattern
+- **Error translation** — backend `NEED_BIND` / `NEED_TENANT` / etc. rendered as actionable English guidance
+- **Tiered timeouts** — 15 s reads / 180 s upload / 660 s dual-use AI query
+- **Zero runtime deps** — `@modelcontextprotocol/sdk` + `zod` + `dotenv` only; Node 18+ built-in `fetch` + `FormData`
+- **Dual transport** — stdio (Claude Desktop) and Streamable HTTP (remote / self-hosted)
 
----
+## 🚀 Quick Start
 
-## Quick Start / 快速开始
+### 1. Set up the backend identity binding
 
-### Use with npx (no install needed)
+Ask your customs system admin to insert one row into `agent_identity_binding`
+mapping your chosen `(platform, externalUserId)` to an existing `sys_user_id`.
+Full SQL in [docs/identity-binding.md](docs/identity-binding.md).
 
-Add the following to your MCP client configuration (e.g. `claude_desktop_config.json`):
+### 2. Configure your AI client
 
-将以下配置添加到 MCP 客户端配置文件中：
+Pick a ready-made config from [`examples/`](examples/):
+- [Claude Desktop](examples/claude-desktop.json)
+- [Cursor](examples/cursor.json)
+- [Windsurf](examples/windsurf.json)
+- [Trae](examples/trae.json)
+- [Claude Code](examples/claude-code.md)
+
+Or use the generic snippet:
 
 ```json
 {
@@ -37,183 +62,134 @@ Add the following to your MCP client configuration (e.g. `claude_desktop_config.
       "args": ["-y", "@dearmrzhang/customs-mcp-server", "--transport", "stdio"],
       "env": {
         "CUSTOMS_API_BASE_URL": "http://your-backend-host:port",
-        "CUSTOMS_API_PREFIX": "/open-api/agent",
         "CUSTOMS_ACCESS_KEY": "your-access-key",
-        "CUSTOMS_SECRET_KEY": "your-secret-key"
+        "CUSTOMS_SECRET_KEY": "your-secret-key",
+        "CUSTOMS_DEFAULT_PLATFORM": "mcp",
+        "CUSTOMS_DEFAULT_EXTERNAL_USER_ID": "your-bound-username",
+        "CUSTOMS_DEFAULT_EXTERNAL_CORP_ID": "mcp-prod"
       }
     }
   }
 }
 ```
 
-### Global install
+### 3. Restart your client and ask
 
-```bash
-npm install -g @dearmrzhang/customs-mcp-server
-customs-mcp-server --transport stdio
+> "Use `customs_query_tariff` to look up HS code 8471300000."
+
+That's it. The AI agent picks the tool, the MCP server signs the request,
+exchanges a grant, and returns structured tariff data.
+
+## 🏗 Architecture
+
+```
+                      ┌────────────────────────────────┐
+                      │  AI client (Claude / Cursor /  │
+                      │  Windsurf / Trae / ...)         │
+                      └───────────────┬────────────────┘
+                                      │ MCP protocol (stdio | HTTP)
+                      ┌───────────────▼────────────────┐
+                      │  customs-mcp-server             │
+                      │                                 │
+                      │  • 14 tool handlers             │
+                      │  • Identity resolver            │
+                      │  • Signer + GrantBroker         │
+                      │    (5-min agentToken cache)     │
+                      │  • Error translator             │
+                      └───────────────┬────────────────┘
+                                      │ HTTPS + signed headers
+                      ┌───────────────▼────────────────┐
+                      │  Customs backend                │
+                      │  /open-api/agent/v1/...          │
+                      └─────────────────────────────────┘
 ```
 
----
+## 📚 Documentation
 
-## Environment Variables / 环境变量
+| Document | What's inside |
+|---|---|
+| **[CHANGELOG.md](CHANGELOG.md)** | All version changes, including v0.1.2 → v1.0.0 breaking changes |
+| **[docs/tool-reference.md](docs/tool-reference.md)** | Complete schema and usage for all 14 tools |
+| **[docs/identity-binding.md](docs/identity-binding.md)** | Backend SQL setup, multi-tenant patterns, troubleshooting |
+| **[examples/](examples/)** | Ready-to-paste config snippets for 5 AI clients |
+
+## 🛠 Environment Variables
 
 | Variable | Required | Default | Description |
-| --- | --- | --- | --- |
-| `CUSTOMS_API_BASE_URL` | **Yes** | — | Backend API root URL / 后端 API 根地址 |
-| `CUSTOMS_API_PREFIX` | No | `/open-api/agent` | API path prefix / 接口路径前缀 |
-| `CUSTOMS_ACCESS_KEY` | **Yes** | — | Access key for API auth / 接口鉴权 accessKey |
-| `CUSTOMS_SECRET_KEY` | **Yes** | — | Secret key for signing / 签名密钥 secretKey |
-| `CUSTOMS_SIGN_ALGORITHM` | No | `MD5` | Signature algorithm / 签名算法 |
-| `CUSTOMS_TIMEOUT_MS` | No | `15000` | Request timeout in ms / 请求超时(毫秒) |
-| `CUSTOMS_TIMESTAMP_TIMEZONE` | No | `Asia/Shanghai` | Timezone for timestamp / 时间戳时区 |
-| `MCP_HTTP_HOST` | No | `0.0.0.0` | HTTP transport bind host |
-| `MCP_HTTP_PORT` | No | `8787` | HTTP transport port |
-| `MCP_HTTP_PATH` | No | `/mcp` | HTTP transport endpoint path |
-| `MCP_HTTP_JSON_RESPONSE` | No | `false` | Return JSON instead of SSE |
+|---|---|---|---|
+| `CUSTOMS_API_BASE_URL` | ✅ | — | Customs backend root URL |
+| `CUSTOMS_ACCESS_KEY` | ✅ | — | Static signature access key |
+| `CUSTOMS_SECRET_KEY` | ✅ | — | Static signature secret key |
+| `CUSTOMS_DEFAULT_PLATFORM` | ✅ | — | Identity platform (e.g. `mcp` / `cursor`) |
+| `CUSTOMS_DEFAULT_EXTERNAL_USER_ID` | ✅ | — | Bound external user identifier |
+| `CUSTOMS_DEFAULT_EXTERNAL_CORP_ID` | ✅ | — | Bound external corp identifier |
+| `CUSTOMS_API_PREFIX` | | `/open-api/agent` | API path prefix |
+| `CUSTOMS_TIMEOUT_MS` | | `15000` | Default request timeout (ms) |
+| `CUSTOMS_UPLOAD_TIMEOUT_MS` | | `180000` | AI-maker upload timeout (ms) |
+| `CUSTOMS_DUAL_USE_TIMEOUT_MS` | | `660000` | Dual-use slow query timeout (ms) |
+| `CUSTOMS_TIMESTAMP_TIMEZONE` | | `Asia/Shanghai` | Timestamp tz (must match backend) |
+| `CUSTOMS_DEFAULT_CHANNEL` | | `${PLATFORM}` | Channel field for `/session/exchange` |
+| `MCP_HTTP_HOST` | | `0.0.0.0` | HTTP transport bind host |
+| `MCP_HTTP_PORT` | | `8787` | HTTP transport port |
+| `MCP_HTTP_PATH` | | `/mcp` | HTTP transport endpoint |
+| `CUSTOMS_DEBUG` | | `0` | Set `1` for verbose stderr debug logs |
+
+## 🧪 Available Tools
+
+14 tools across 7 domains. Full schema and examples in [tool-reference.md](docs/tool-reference.md).
+
+| Domain | Tools |
+|---|---|
+| **Declaration** | `customs_get_declaration_status` · `customs_query_declaration_list` · `customs_get_declaration_detail` · `customs_get_import_export_status` · `customs_get_full_process_tracking` |
+| **Ship** | `customs_query_ship_info` (with auto I→E fallback) · `customs_query_ship_plan` |
+| **Manifest** | `customs_query_manifest_info` · `customs_query_ship_manifest_info` |
+| **Tariff** | `customs_query_tariff` |
+| **Compliance** | `customs_query_dual_use_item` (slow AI query) |
+| **Orders** | `customs_create_order_draft` (pre-check only) |
+| **AI Maker** | `customs_submit_ai_maker` · `customs_get_ai_maker_status` |
+
+## ⚠️ Upgrading from v0.1.x
+
+v1.0.0 is a **breaking release** with mandatory new env vars. See
+[CHANGELOG.md → 1.0.0](CHANGELOG.md#100--2026-05-24) for the full list.
+TL;DR:
+
+1. Add three identity env vars (`CUSTOMS_DEFAULT_PLATFORM` /
+   `CUSTOMS_DEFAULT_EXTERNAL_USER_ID` / `CUSTOMS_DEFAULT_EXTERNAL_CORP_ID`)
+2. Have your admin insert the matching `agent_identity_binding` row
+3. Rename `customs_query_tariff_info` → `customs_query_tariff`
+4. Switch `customs_get_declaration_detail` callers from `cusCiqNo` to
+   `entryId` (or `decId` when known)
+
+## 🛡 Security
+
+- `CUSTOMS_SECRET_KEY` and cached `agentToken`s never leave server memory
+- Per-call `_identity` overrides should not embed PII — they appear in MCP structured responses
+- All write tools route through action-code whitelist on the backend
+- Cross-tenant `ai-maker` status access is blocked at the backend layer
+
+## 🤝 Contributing
+
+Issues and PRs welcome at [github.com/yak33/customs-mcp-server](https://github.com/yak33/customs-mcp-server/issues).
+
+```bash
+git clone https://github.com/yak33/customs-mcp-server.git
+cd customs-mcp-server
+pnpm install
+pnpm build
+pnpm dev:stdio      # or dev:http
+```
+
+## 📄 License
+
+MIT © [ZHANGCHAO](https://github.com/yak33). See [LICENSE](LICENSE).
+
+## 🙏 Related Projects
+
+- **[customs-skill](https://github.com/yak33/customs-skill)** — the same 13 customs capabilities as an OpenClaw skill for Feishu/Lark integration
 
 ---
 
-## Available Tools / 可用工具
-
-### `customs_get_declaration_status`
-
-Query declaration status / 查询申报状态
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `entryId` | string | No* | Entry ID / 报关单号 |
-| `seqNo` | string | No* | Sequence number / 统一编号 |
-
-> \* At least one of `entryId` or `seqNo` is required / 至少提供一个
-
-### `customs_query_declaration_list`
-
-Search declaration list / 查询报关单列表
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `ieFlag` | `"I"` \| `"E"` | No | Import/Export flag / 进出口标志 |
-| `entryId` | string | No* | Entry ID or sequence number / 报关单号或统一编号 |
-| `billNo` | string | No* | Bill of lading number / 提运单号 |
-| `beginTime` | string | No* | Start date (`yyyy-MM-dd`) / 开始日期 |
-| `endTime` | string | No* | End date (`yyyy-MM-dd`) / 结束日期 |
-
-> \* At least one of `entryId`, `billNo`, `beginTime`, `endTime` is required
-
-### `customs_get_declaration_detail`
-
-Get full declaration details / 获取报关单全量详情
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `cusCiqNo` | string | **Yes** | Entry ID or sequence number / 报关单号或统一编号 |
-
-### `customs_get_import_export_status`
-
-Query import/export flow status / 查询进出口流转状态
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `ieFlag` | `"I"` \| `"E"` | No | Import/Export flag (auto-fallback: I → E) / 进出口标志 |
-| `entryId` | string | No* | Entry ID / 报关单号 |
-| `billNo` | string | No* | Bill of lading number / 提运单号 |
-
-> \* At least one of `entryId` or `billNo` is required
-
-### `customs_query_tariff_info`
-
-Look up tariff information / 查询税则信息
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `hscode` | string | No* | HS code / HS 编码 |
-| `hsname` | string | No* | Product name / 商品名称 |
-
-> \* At least one of `hscode` or `hsname` is required
-
-### `customs_get_full_process_tracking`
-
-End-to-end customs tracking / 海关全流程流转轨迹
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `ieFlag` | `"I"` \| `"E"` | No | Import/Export flag (auto-fallback: I → E) / 进出口标志 |
-| `billNo` | string | No* | Bill of lading number / 提运单号 |
-| `customsNo` | string | No* | Customs declaration number / 报关单号 |
-
-> \* At least one of `billNo` or `customsNo` is required
-
----
-
-## Transport Modes / 传输模式
-
-### stdio (default)
-
-Standard I/O transport — for local MCP clients like Claude Desktop.
-
-```bash
-customs-mcp-server --transport stdio
-```
-
-### HTTP (Streamable HTTP)
-
-HTTP transport — for remote deployment scenarios.
-
-```bash
-customs-mcp-server --transport http
-```
-
-Endpoints:
-
-| Method | Path | Description |
-| --- | --- | --- |
-| `POST` | `/mcp` | MCP message endpoint |
-| `GET` | `/mcp` | SSE connection |
-| `DELETE` | `/mcp` | Close session |
-| `GET` | `/health` | Health check |
-
----
-
-## Docker Deployment / Docker 部署
-
-1. Create runtime config from the example / 基于示例创建运行时配置：
-
-```bash
-cp .env.compose.example .env.compose
-# Edit .env.compose with your actual values
-```
-
-2. Start the container / 启动容器：
-
-```bash
-docker compose up -d --build
-```
-
-3. Verify / 验证：
-
-```bash
-curl http://127.0.0.1:8787/health
-```
-
----
-
-## Auth Protocol / 签名协议
-
-Requests to the backend API are signed with the following headers:
-
-| Header | Description |
-| --- | --- |
-| `accessKey` | Your access key |
-| `timestamp` | Current timestamp (in configured timezone) |
-| `nonce` | Random UUID per request |
-| `sign` | `MD5(accessKey + timestamp + nonce + secretKey)` |
-
-The algorithm must match your backend `service_lic` configuration.
-
-签名算法需与后端 `service_lic` 中配置的算法保持一致。
-
----
-
-## License
-
-[MIT](./LICENSE) © ZHANGCHAO
+<div align="center">
+<sub>Built with 🦞 by ZHANGCHAO · <a href="CHANGELOG.md">v1.0.0</a> · 2026-05-24</sub>
+</div>

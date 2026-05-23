@@ -1,8 +1,8 @@
 {
   "name": "@dearmrzhang/customs-mcp-server",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "type": "module",
-  "description": "MCP server for customs declaration, tariff query and shipment tracking — wraps your backend Agent APIs as standard MCP tools.",
+  "description": "MCP server exposing 14 customs / trade capabilities (declarations, ship info, tariff, dual-use screening, AI document maker, ...) as standard Model Context Protocol tools. Built for Claude Desktop / Claude Code / Cursor / Windsurf / Trae / Codex and any MCP-compatible AI client.",
   "keywords": [
     "mcp",
     "model-context-protocol",
@@ -11,7 +11,11 @@
     "declaration",
     "tariff",
     "hs-code",
-    "ai-agent"
+    "ai-agent",
+    "claude",
+    "claude-code",
+    "cursor",
+    "windsurf"
   ],
   "author": "ZHANGCHAO",
   "license": "MIT",
@@ -31,15 +35,24 @@
   },
   "files": [
     "dist/",
+    "examples/",
+    "docs/",
     "README.md",
+    "README.zh-CN.md",
+    "README.ja.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "publishConfig": {
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "prepublishOnly": "tsc -p tsconfig.json",
+    "build": "rimraf dist && tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "prepack": "pnpm typecheck && pnpm test && pnpm build",
     "dev:stdio": "tsx src/index.ts --transport stdio",
     "dev:http": "tsx src/index.ts --transport http",
     "start:stdio": "node dist/index.js --transport stdio",
@@ -53,8 +66,10 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
+    "rimraf": "^6.0.1",
     "tsx": "^4.19.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.8"
   },
   "pnpm": {
     "overrides": {

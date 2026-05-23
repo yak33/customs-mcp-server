@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Trae (字节跳动) MCP config — drop into Trae → Settings → MCP Servers.",
+    "",
+    "Replace placeholders before use. See docs/identity-binding.md."
+  ],
+  "mcpServers": {
+    "customs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@dearmrzhang/customs-mcp-server",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "CUSTOMS_API_BASE_URL": "http://your-backend-host:port",
+        "CUSTOMS_ACCESS_KEY": "your-access-key",
+        "CUSTOMS_SECRET_KEY": "your-secret-key",
+        "CUSTOMS_DEFAULT_PLATFORM": "trae",
+        "CUSTOMS_DEFAULT_EXTERNAL_USER_ID": "your-bound-username",
+        "CUSTOMS_DEFAULT_EXTERNAL_CORP_ID": "trae-prod"
+      }
+    }
+  }
+}

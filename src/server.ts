@@ -1,122 +1,164 @@
+/**
+ * MCP server factory.
+ *
+ * Responsibilities:
+ *   1. Build the shared {@link ExecutionContext} (HTTP client, grant broker, config)
+ *   2. Collect tool definitions from the registry
+ *   3. Wire each tool to the MCP server with a uniform success/error wrapper
+ *
+ * v1.0.0 changes vs v0.1.x:
+ *   - Routes every call through `GrantBroker` (was: direct signed call, no grant)
+ *   - Tool input schemas now include an optional `_identity` override
+ *   - Errors thrown by handlers are translated to English guidance and emitted
+ *     with `isError: true`, while `structuredContent` preserves the original code
+ *
+ * @author ZHANGCHAO
+ */
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "zod";
 
+import { GrantBroker } from "./auth/grantBroker.js";
+import { Signer } from "./auth/signer.js";
 import type { AppConfig } from "./config.js";
-import { CustomsApiClient, type JeecgResult } from "./customsApiClient.js";
+import { isMcpServerError, McpServerError } from "./errors/types.js";
+import { translateError } from "./errors/translate.js";
+import { HttpClient, type JeecgResult } from "./http/client.js";
+import { logError } from "./logging.js";
 
-function normalizeTextResult(payload: JeecgResult): string {
-  return JSON.stringify(payload, null, 2);
+import type { ExecutionContext, ToolDefinition } from "./tools/_common.js";
+import { aiMakerStatusTool, aiMakerSubmitTool } from "./tools/aiMaker.js";
+import {
+  declarationDetailTool,
+  declarationListTool,
+  declarationStatusTool,
+  fullProcessTrackingTool,
+  importExportStatusTool,
+} from "./tools/declaration.js";
+import { dualUseQueryTool } from "./tools/dualUse.js";
+import {
+  manifestInfoTool,
+  shipManifestInfoTool,
+} from "./tools/manifest.js";
+import { orderCreateDraftTool } from "./tools/order.js";
+import { shipInfoTool, shipPlanTool } from "./tools/ship.js";
+import { tariffQueryTool } from "./tools/tariff.js";
+
+/** Collect every tool definition in display order (this is what `--help` shows). */
+function buildToolRegistry(): readonly ToolDefinition[] {
+  return [
+    // Declaration / IE / tracking (5 tools)
+    declarationStatusTool(),
+    declarationListTool(),
+    declarationDetailTool(),
+    importExportStatusTool(),
+    fullProcessTrackingTool(),
+    // Ship (2 tools)
+    shipInfoTool(),
+    shipPlanTool(),
+    // Manifest (2 tools — with optional local state sync side effects)
+    manifestInfoTool(),
+    shipManifestInfoTool(),
+    // Tariff (1 tool)
+    tariffQueryTool(),
+    // Dual-use item screening (1 tool, slow query)
+    dualUseQueryTool(),
+    // Order draft (1 tool — currently pre-check only)
+    orderCreateDraftTool(),
+    // AI maker (2 tools — submit no-wait + status)
+    aiMakerSubmitTool(),
+    aiMakerStatusTool(),
+  ];
 }
 
-function toToolResult(payload: JeecgResult) {
+/** Build the per-instance execution context (single set of shared resources). */
+function buildExecutionContext(config: AppConfig): ExecutionContext {
+  const signer = new Signer(
+    config.customsAccessKey,
+    config.customsSecretKey,
+    config.customsTimestampTimezone,
+  );
+  const http = new HttpClient(config, signer);
+  const grant = new GrantBroker(http, config.identity.externalCorpId);
+  return { config, http, grant };
+}
+
+// ─────────────────────────────────────────────────────────────────
+// MCP server factory
+// ─────────────────────────────────────────────────────────────────
+
+export function createCustomsMcpServer(config: AppConfig): McpServer {
+  const server = new McpServer({
+    name: "customs-mcp-server",
+    version: "1.0.0",
+  });
+  const ctx = buildExecutionContext(config);
+
+  for (const tool of buildToolRegistry()) {
+    server.tool(
+      tool.name,
+      tool.description,
+      tool.inputSchema,
+      async (input) => {
+        try {
+          const result = await tool.handler(input, ctx);
+          return toSuccessResult(result);
+        } catch (error) {
+          return toErrorResult(error, tool.name);
+        }
+      },
+    );
+  }
+
+  return server;
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Result adapters
+// ─────────────────────────────────────────────────────────────────
+
+function toSuccessResult(payload: JeecgResult) {
   return {
     content: [
       {
         type: "text" as const,
-        text: normalizeTextResult(payload)
-      }
+        text: JSON.stringify(payload, null, 2),
+      },
     ],
-    structuredContent: payload,
-    isError: payload.success === false
+    structuredContent: payload as Record<string, unknown>,
+    isError: payload.success === false,
   };
 }
 
-function ensureOneOf(values: Array<string | undefined>, message: string): void {
-  if (!values.some((value) => value && value.trim())) {
-    throw new Error(message);
+function toErrorResult(error: unknown, toolName: string) {
+  if (isMcpServerError(error)) {
+    const text = translateError(error);
+    return {
+      content: [{ type: "text" as const, text }],
+      structuredContent: serializeError(error),
+      isError: true,
+    };
   }
+
+  // Unexpected error — log and surface as best-effort
+  const message =
+    error instanceof Error ? error.message : String(error);
+  logError("tool.unexpected_error", { tool: toolName, message });
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: `Unexpected error in ${toolName}: ${message}`,
+      },
+    ],
+    structuredContent: { code: "UNEXPECTED_ERROR", message },
+    isError: true,
+  };
 }
 
-export function createCustomsMcpServer(config: AppConfig): McpServer {
-  const client = new CustomsApiClient(config);
-  const server = new McpServer({
-    name: "customs-mcp-server",
-    version: "0.1.0"
-  });
-
-  server.tool(
-    "customs_get_declaration_status",
-    "根据报关单号(entryId)或统一编号(seqNo)查询当前申报状态。",
-    {
-      entryId: z.string().trim().optional().describe("报关单号"),
-      seqNo: z.string().trim().optional().describe("统一编号")
-    },
-    async ({ entryId, seqNo }) => {
-      ensureOneOf([entryId, seqNo], "entryId 和 seqNo 至少需要提供一个");
-      return toToolResult(await client.queryDeclarationStatus(entryId, seqNo));
-    }
-  );
-
-  server.tool(
-    "customs_query_declaration_list",
-    "按进出口标志、报关单号、提运单号、时间范围查询报关单列表。",
-    {
-      ieFlag: z.enum(["I", "E"]).optional().describe("进出口标志：I=进口，E=出口"),
-      entryId: z.string().trim().optional().describe("报关单号或统一编号"),
-      billNo: z.string().trim().optional().describe("提运单号"),
-      beginTime: z.string().trim().optional().describe("开始日期，格式 yyyy-MM-dd"),
-      endTime: z.string().trim().optional().describe("结束日期，格式 yyyy-MM-dd")
-    },
-    async ({ ieFlag, entryId, billNo, beginTime, endTime }) => {
-      ensureOneOf(
-        [entryId, billNo, beginTime, endTime],
-        "entryId、billNo、beginTime、endTime 至少需要提供一个"
-      );
-      return toToolResult(
-        await client.queryDeclarationList(ieFlag, entryId, billNo, beginTime, endTime)
-      );
-    }
-  );
-
-  server.tool(
-    "customs_get_declaration_detail",
-    "根据报关单号或统一编号获取报关单全量详情。",
-    {
-      cusCiqNo: z.string().trim().min(1).describe("报关单号或统一编号")
-    },
-    async ({ cusCiqNo }) => toToolResult(await client.queryDeclarationDetail(cusCiqNo))
-  );
-
-  server.tool(
-    "customs_get_import_export_status",
-    "查询报关单或提运单对应的进出口流转状态；未指定 ieFlag 时会按进口(I)后出口(E)自动兜底。",
-    {
-      ieFlag: z.enum(["I", "E"]).optional().describe("进出口标志：I=进口，E=出口"),
-      entryId: z.string().trim().optional().describe("报关单号"),
-      billNo: z.string().trim().optional().describe("提运单号")
-    },
-    async ({ ieFlag, entryId, billNo }) => {
-      ensureOneOf([entryId, billNo], "entryId 和 billNo 至少需要提供一个");
-      return toToolResult(await client.queryImportExportStatus(ieFlag, entryId, billNo));
-    }
-  );
-
-  server.tool(
-    "customs_query_tariff_info",
-    "根据 HS 编码(hscode)或商品名称(hsname)查询税则信息。",
-    {
-      hscode: z.string().trim().optional().describe("HS 编码"),
-      hsname: z.string().trim().optional().describe("商品名称")
-    },
-    async ({ hscode, hsname }) => {
-      ensureOneOf([hscode, hsname], "hscode 和 hsname 至少需要提供一个");
-      return toToolResult(await client.queryTariffInfo(hscode, hsname));
-    }
-  );
-
-  server.tool(
-    "customs_get_full_process_tracking",
-    "根据提运单号(billNo)或报关单号(customsNo)查询海关全流程流转轨迹，底层复用 getSwIEStatus；未指定 ieFlag 时会按进口(I)后出口(E)自动兜底。",
-    {
-      ieFlag: z.enum(["I", "E"]).optional().describe("进出口标志：I=进口，E=出口"),
-      billNo: z.string().trim().optional().describe("提运单号"),
-      customsNo: z.string().trim().optional().describe("报关单号")
-    },
-    async ({ ieFlag, billNo, customsNo }) => {
-      ensureOneOf([billNo, customsNo], "billNo 和 customsNo 至少需要提供一个");
-      return toToolResult(await client.queryFullProcessTracking(ieFlag, billNo, customsNo));
-    }
-  );
-
-  return server;
+function serializeError(error: McpServerError): Record<string, unknown> {
+  return {
+    code: error.code,
+    message: error.message,
+    ...error.context,
+  };
 }

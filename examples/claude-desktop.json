@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "Drop this into ~/Library/Application Support/Claude/claude_desktop_config.json",
+    "(macOS) or %APPDATA%/Claude/claude_desktop_config.json (Windows).",
+    "After saving, fully quit & restart Claude Desktop.",
+    "",
+    "Replace placeholder env values before use. See docs/identity-binding.md",
+    "for the required backend SQL setup."
+  ],
+  "mcpServers": {
+    "customs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@dearmrzhang/customs-mcp-server",
+        "--transport",
+        "stdio"
+      ],
+      "env": {
+        "CUSTOMS_API_BASE_URL": "http://your-backend-host:port",
+        "CUSTOMS_ACCESS_KEY": "your-access-key",
+        "CUSTOMS_SECRET_KEY": "your-secret-key",
+        "CUSTOMS_DEFAULT_PLATFORM": "mcp",
+        "CUSTOMS_DEFAULT_EXTERNAL_USER_ID": "your-bound-username",
+        "CUSTOMS_DEFAULT_EXTERNAL_CORP_ID": "mcp-prod"
+      }
+    }
+  }
+}
