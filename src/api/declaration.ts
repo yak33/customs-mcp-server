@@ -50,11 +50,21 @@ export async function queryDeclarationStatus(
 const ACTION_DECLARATION_LIST = "agent:declaration:list";
 
 export interface DeclarationListParams {
+  /** Status semantic group: unsubmitted/declared/released/closed/returned/... */
+  statusGroup?: string;
+  /** Exact status code: 1/2/4/6/7/8/9/10/11/S/T/U; takes precedence over statusGroup */
+  decStatus?: string;
   ieFlag?: "I" | "E";
-  entryId?: string;
-  billNo?: string;
-  beginTime?: string;
-  endTime?: string;
+  /** Fuzzy match on seqNo/clearanceNo/customsNo/billCode */
+  keyword?: string;
+  /** Declaration date start, yyyy-MM-dd */
+  startDate?: string;
+  /** Declaration date end, yyyy-MM-dd */
+  endDate?: string;
+  /** Page number, starts from 1, default 1 */
+  pageNo?: number;
+  /** Page size, default 20, max 100 */
+  pageSize?: number;
 }
 
 export async function queryDeclarationList(
@@ -66,11 +76,14 @@ export async function queryDeclarationList(
   return ctx.http.get(
     "/v1/declaration/list",
     {
+      statusGroup: params.statusGroup,
+      decStatus: params.decStatus,
       ieFlag: params.ieFlag,
-      entryId: params.entryId,
-      billNo: params.billNo,
-      beginTime: params.beginTime,
-      endTime: params.endTime,
+      keyword: params.keyword,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      pageNo: params.pageNo,
+      pageSize: params.pageSize,
     },
     { grant },
   );

@@ -7,6 +7,49 @@ versioning follows [SemVer](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.1.0] — 2026-05-27
+
+**Enhanced declaration list query with status semantic groups and pagination.**
+
+### ✨ Added
+
+- **`customs_query_declaration_list` upgraded** with powerful new filters:
+  - **`statusGroup`** — semantic status groups for natural language queries:
+    - `unsubmitted` / `notDeclared` — drafts (decStatus=1)
+    - `declared` / `submitted` — submitted to customs (includes 2/4/6/7/8/9/10/11)
+    - `customsAccepted` — customs processed (excludes returned/deleted)
+    - `customsStored` — customs stored (4)
+    - `released` — released (9)
+    - `closed` — closed (10)
+    - `returned` — returned (6)
+    - `inspection` — inspection notice (11)
+    - `audited` — audited (7)
+    - `deleted` — deleted (8)
+  - **`decStatus`** — exact status code (1/2/4/6/7/8/9/10/11/S/T/U); takes precedence over `statusGroup`
+  - **`keyword`** — fuzzy match on seqNo / clearanceNo / customsNo / billCode
+  - **`pageNo`** / **`pageSize`** — pagination support (default 20, max 100)
+  - **`startDate`** / **`endDate`** — replaces old `beginTime` / `endTime` for consistency with backend
+
+### 🔄 Changed
+
+- **`customs_query_declaration_list` input schema** — removed `entryId` and `billNo` (use `keyword` instead for fuzzy matching), renamed date fields to `startDate` / `endDate`
+- Tool description now highlights use cases: "list all released declarations", "show unsubmitted drafts", etc.
+
+### 🎯 Use cases
+
+Now supports natural language queries like:
+- "List all released export declarations from May"
+- "Show me unsubmitted drafts"
+- "Find declarations with keyword MEDU"
+- "Query closed declarations, page 2"
+
+### ⚙️ Backend compatibility
+
+- Requires backend `/v1/declaration/list` with `statusGroup` / `decStatus` / `keyword` / `pageNo` / `pageSize` support
+- Action code remains `agent:declaration:list`
+
+---
+
 ## [1.0.0] — 2026-05-24
 
 **Milestone release: full 13-capability coverage with production-grade auth.**

@@ -5,7 +5,7 @@
  * `agent:tracking:*` action codes on the backend):
  *
  *   - customs_get_declaration_status
- *   - customs_query_declaration_list
+ *   - customs_query_declaration_list (v1.1.0: upgraded with statusGroup/decStatus/keyword/pagination)
  *   - customs_get_declaration_detail
  *   - customs_get_import_export_status
  *   - customs_get_full_process_tracking
@@ -30,6 +30,25 @@ import {
   requireAtLeastOne,
   withIdentity,
 } from "./_common.js";
+
+// ─────────────────────────────────────────────────────────────────
+// Status semantic groups (aligned with backend STATUS_BUCKETS)
+// ─────────────────────────────────────────────────────────────────
+
+const STATUS_GROUPS = [
+  "unsubmitted",
+  "notDeclared",
+  "declared",
+  "submitted",
+  "customsAccepted",
+  "customsStored",
+  "released",
+  "closed",
+  "returned",
+  "inspection",
+  "audited",
+  "deleted",
+] as const;
 
 // ─────────────────────────────────────────────────────────────────
 // customs_get_declaration_status
@@ -78,33 +97,63 @@ export function declarationListTool(): ToolDefinition {
   return {
     name: "customs_query_declaration_list",
     description:
-      "Search the customs declaration list by import/export flag, entry ID, " +
-      "bill-of-lading number, or date range. At least one filter is required.",
+      "Query customs declaration list by status semantic groups (e.g. 'released', 'closed', 'unsubmitted') " +
+      "or exact status codes (1/2/4/6/7/8/9/10/11), with optional filters for IE flag, keyword (fuzzy match on " +
+      "seqNo/clearanceNo/customsNo/billCode), date range, and pagination. At least one filter is required. " +
+      "Use this when the user asks to 'list all released declarations', 'show unsubmitted drafts', " +
+      "'find declarations from May', etc.",
     inputSchema: withIdentity({
+      statusGroup: z
+        .enum(STATUS_GROUPS)
+        .optional()
+        .describe(
+          "Status semantic group: unsubmitted (draft, decStatus=1), declared (submitted, includes 2/4/6/7/8/9/10/11), " +
+          "customsAccepted (customs processed, excludes returned/deleted), customsStored (4), released (9), closed (10), " +
+          "returned (6), inspection (11), audited (7), deleted (8). Aliases: notDeclared=unsubmitted, submitted=declared.",
+        ),
+      decStatus: z
+        .string()
+        .trim()
+        .optional()
+        .describe(
+          "Exact status code: 1 (saved/draft), 2 (declared), 4 (customs stored), 6 (returned), 7 (audited), " +
+          "8 (deleted), 9 (released), 10 (closed), 11 (inspection), S/T/U (personal use). Takes precedence over statusGroup.",
+        ),
       ieFlag: z
         .enum(["I", "E"])
         .optional()
         .describe("Import (I) or Export (E)"),
-      entryId: z
+      keyword: z
         .string()
         .trim()
         .optional()
-        .describe("Entry ID or unified sequence number"),
-      billNo: z
+        .describe(
+          "Fuzzy match on unified sequence number (seqNo), clearance number (clearanceNo), " +
+          "customs number (customsNo), or bill of lading (billCode)",
+        ),
+      startDate: z
         .string()
         .trim()
         .optional()
-        .describe("Bill of lading number (提运单号)"),
-      beginTime: z
+        .describe("Declaration date start in yyyy-MM-dd format"),
+      endDate: z
         .string()
         .trim()
         .optional()
-        .describe("Start date in yyyy-MM-dd format"),
-      endTime: z
-        .string()
-        .trim()
+        .describe("Declaration date end in yyyy-MM-dd format"),
+      pageNo: z
+        .number()
+        .int()
+        .positive()
         .optional()
-        .describe("End date in yyyy-MM-dd format"),
+        .describe("Page number, starts from 1, default 1"),
+      pageSize: z
+        .number()
+        .int()
+        .positive()
+        .max(100)
+        .optional()
+        .describe("Page size, default 20, max 100"),
     }),
     async handler(input: ToolInput, ctx: ExecutionContext) {
       const identity = resolveIdentity(
@@ -113,19 +162,24 @@ export function declarationListTool(): ToolDefinition {
       );
       requireAtLeastOne(
         {
-          entryId: input.entryId,
-          billNo: input.billNo,
-          beginTime: input.beginTime,
-          endTime: input.endTime,
+          statusGroup: input.statusGroup,
+          decStatus: input.decStatus,
+          ieFlag: input.ieFlag,
+          keyword: input.keyword,
+          startDate: input.startDate,
+          endDate: input.endDate,
         },
-        "At least one of `entryId`, `billNo`, `beginTime`, `endTime` is required.",
+        "At least one filter is required: statusGroup, decStatus, ieFlag, keyword, or date range.",
       );
       return queryDeclarationList(ctx, identity, {
+        statusGroup: input.statusGroup as string | undefined,
+        decStatus: input.decStatus as string | undefined,
         ieFlag: input.ieFlag as "I" | "E" | undefined,
-        entryId: input.entryId as string | undefined,
-        billNo: input.billNo as string | undefined,
-        beginTime: input.beginTime as string | undefined,
-        endTime: input.endTime as string | undefined,
+        keyword: input.keyword as string | undefined,
+        startDate: input.startDate as string | undefined,
+        endDate: input.endDate as string | undefined,
+        pageNo: input.pageNo as number | undefined,
+        pageSize: input.pageSize as number | undefined,
       });
     },
   };

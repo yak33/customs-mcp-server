@@ -4,7 +4,7 @@
 
 **税関業務を MCP ツールとして提供 — AI エージェントにそのまま組み込み可能。**
 
-13 の本番品質の税関・貿易機能(申告書、船舶情報、関税率、デュアルユース判定、
+14 の本番品質の税関・貿易機能(申告書、船舶情報、関税率、デュアルユース判定、
 AI 申告書生成 ……)を標準 [Model Context Protocol](https://modelcontextprotocol.io/)
 ツールとして公開、Claude Desktop / Claude Code / Cursor / Windsurf / Trae
 等あらゆる MCP 対応 AI クライアントから直接呼び出せます。
@@ -107,7 +107,7 @@ AI 申告書生成 ……)を標準 [Model Context Protocol](https://modelcontex
 
 | ドキュメント | 内容 |
 |---|---|
-| **[CHANGELOG.md](CHANGELOG.md)** | バージョン変更履歴、v0.1.2 → v1.0.0 の破壊的変更含む |
+| **[CHANGELOG.md](CHANGELOG.md)** | バージョン変更履歴、v0.1.2 → v1.0.0 の破壊的変更、v1.1.0 declaration-list 強化含む |
 | **[docs/tool-reference.md](docs/tool-reference.md)** | 全 14 ツールの完全なスキーマと使い方 |
 | **[docs/identity-binding.md](docs/identity-binding.md)** | バックエンド SQL 設定、マルチテナント設計、トラブルシューティング |
 | **[examples/](examples/)** | 5 つの AI クライアントの設定例 |
@@ -190,5 +190,5 @@ MIT © [ZHANGCHAO](https://github.com/yak33)、詳細は [LICENSE](LICENSE)。
 ---
 
 <div align="center">
-<sub>Built with 🦞 by ZHANGCHAO · <a href="CHANGELOG.md">v1.0.0</a> · 2026-05-24</sub>
+<sub>Built with 🦞 by ZHANGCHAO · <a href="CHANGELOG.md">v1.1.0</a> · 2026-05-27</sub>
 </div>

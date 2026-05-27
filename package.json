@@ -1,6 +1,6 @@
 {
   "name": "@dearmrzhang/customs-mcp-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "description": "MCP server exposing 14 customs / trade capabilities (declarations, ship info, tariff, dual-use screening, AI document maker, ...) as standard Model Context Protocol tools. Built for Claude Desktop / Claude Code / Cursor / Windsurf / Trae / Codex and any MCP-compatible AI client.",
   "keywords": [

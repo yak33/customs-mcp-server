@@ -4,7 +4,7 @@
 
 **Customs operations as MCP tools — drop into any AI agent.**
 
-13 production-grade customs / trade capabilities (declarations, ship info,
+14 production-grade customs / trade capabilities (declarations, ship info,
 tariff, dual-use screening, AI-powered declaration generation, ...)
 exposed as standard [Model Context Protocol](https://modelcontextprotocol.io/)
 tools for Claude Desktop, Claude Code, Cursor, Windsurf, Trae and any
@@ -108,7 +108,7 @@ exchanges a grant, and returns structured tariff data.
 
 | Document | What's inside |
 |---|---|
-| **[CHANGELOG.md](CHANGELOG.md)** | All version changes, including v0.1.2 → v1.0.0 breaking changes |
+| **[CHANGELOG.md](CHANGELOG.md)** | All version changes, including v0.1.2 → v1.0.0 breaking changes, v1.1.0 declaration-list enhancements |
 | **[docs/tool-reference.md](docs/tool-reference.md)** | Complete schema and usage for all 14 tools |
 | **[docs/identity-binding.md](docs/identity-binding.md)** | Backend SQL setup, multi-tenant patterns, troubleshooting |
 | **[examples/](examples/)** | Ready-to-paste config snippets for 5 AI clients |
@@ -191,5 +191,5 @@ MIT © [ZHANGCHAO](https://github.com/yak33). See [LICENSE](LICENSE).
 ---
 
 <div align="center">
-<sub>Built with 🦞 by ZHANGCHAO · <a href="CHANGELOG.md">v1.0.0</a> · 2026-05-24</sub>
+<sub>Built with 🦞 by ZHANGCHAO · <a href="CHANGELOG.md">v1.1.0</a> · 2026-05-27</sub>
 </div>

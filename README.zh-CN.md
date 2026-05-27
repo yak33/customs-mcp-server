@@ -4,7 +4,7 @@
 
 **关务能力打包成 MCP 工具 —— 任何 AI Agent 即插即用。**
 
-把 13 个生产级关务/贸易能力(报关单、船信息、税则、两用物项判定、
+把 14 个生产级关务/贸易能力(报关单、船信息、税则、两用物项判定、
 AI 智能制单 ……)封装成标准 [Model Context Protocol](https://modelcontextprotocol.io/)
 工具,供 Claude Desktop、Claude Code、Cursor、Windsurf、Trae 以及其他
 任意 MCP 兼容的 AI 客户端直接调用。
@@ -107,7 +107,7 @@ AI 智能制单 ……)封装成标准 [Model Context Protocol](https://modelcon
 
 | 文档 | 内容 |
 |---|---|
-| **[CHANGELOG.md](CHANGELOG.md)** | 所有版本变更,含 v0.1.2 → v1.0.0 破坏性变更 |
+| **[CHANGELOG.md](CHANGELOG.md)** | 所有版本变更,含 v0.1.2 → v1.0.0 破坏性变更、v1.1.0 declaration-list 增强 |
 | **[docs/tool-reference.md](docs/tool-reference.md)** | 全部 14 个工具的完整 schema 与用法 |
 | **[docs/identity-binding.md](docs/identity-binding.md)** | 后端 SQL 配置、多租户模式、troubleshooting |
 | **[examples/](examples/)** | 5 个 AI 客户端的配置示例 |
